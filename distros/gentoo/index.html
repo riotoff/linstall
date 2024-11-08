@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <title>LinStall | Gentoo</title>
+    <link rel="stylesheet" type="text/css" href="../../css/main.css">
+</head>
+<body>
+    <div id="banner">
+        <a href="../../index.html">
+            <img src="../../images/linstall2.png" alt="LinStall | Install linux distros easily">
+        </a>
+    </div>
+    <div class="navbar">
+        <ul id="menu">
+            <li><a id="lfs" href="../lfs/index.html">LFS</a></li>
+            <li><a id="gentoo" href="index.html">Gentoo</a></li>
+            <li><a id="arch" href="../arch/index.html">Arch</a></li>
+        </ul>
+    </div>
+    <div id="leftmenu">
+        <ul id="leftmenulist">
+            <li><a href="../../index.html">Home</a></li>
+            <li><a href="telegram.html" target="_blank">Telegram</a></li>
+        </ul>
+    </div>
+    <div class="main">
+        <h1>Welcome to Gentoo Linux install guide!</h1>
+        <h2>Check internet connection:</h2>
+        <code>ping linux.org</code>
+        <h2>Partition the disk:</h2>
+        <p>Check disks:</p>
+        <code>lsblk</code>
+        <p>Partition the desired disk:</p>
+        <code>cfdisk /dev/sdx</code>
+        <p>(Replace sdx with the disk name from lsblk command, e.g.: /dev/sda)</p>
+        <p>Select GPT format, create a 300MB partition of type EFI System, create a 700MB partition of type Linux swap, and a partition using the remaining GB of type Linux filesystem (default).</p>
+        <p>Select write and type yes to confirm saving, then choose quit to exit.</p>
+        <p>To verify created partitions, enter:</p>
+        <code>lsblk</code>
+        <h2>Format the disks:</h2>
+        <code>mkfs.fat -F 32 /dev/sda1</code><br>
+        <code>mkswap /dev/sda2</code><br>
+        <code>mkfs.ext4 /dev/sda3</code><br>
+        <code>mkdir /mnt/gentoo</code><br>
+        <code>mkdir -p /mnt/gentoo/boot/efi</code><br>
+        <code>mount /dev/sda1 /mnt/gentoo/boot/efi</code><br>
+        <code>swapon /dev/sda2</code><br>
+        <code>mount /dev/sda3 /mnt/gentoo</code>
+        <h2>Installing Stage 3:</h2>
+        <code>cd /mnt/gentoo</code><br>
+        <code>wget https://distfiles.gentoo.org/releases/amd64/autobuilds/20240929T163611Z/stage3-amd64-desktop-openrc-20240929T163611Z.tar.xz --no-check-certificate</code><br>
+        <code>tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner</code>
+        <h2>Configuring Portage:</h2>
+        <code>nano /mnt/gentoo/etc/portage/make.conf</code>
+        <p>Add the following at the end of the file:</p>
+        <code>MAKEOPTS="-j4"</code>
+        <p>Replace <code>-j4</code> with the number corresponding to your allocated RAM (e.g., for 8GB, keep it as <code>-j4</code>).</p>
+        <p>Get your desired mirror from <a href="https://www.gentoo.org/downloads/mirrors/">here</a> and replace:</p>
+        <code>GENTOO_MIRRORS="your mirror"</code>
+        <p>Accept necessary licenses:</p>
+        <code>ACCEPT_LICENSE="*"</code>
+        <h2>System Setup:</h2>
+        <code>cp --dereference /etc/resolv.conf /mnt/gentoo/etc/</code><br>
+        <p>Manual mounting:</p>
+        <code>mount --types proc /proc /mnt/gentoo/proc</code><br>
+        <code>mount --rbind /sys /mnt/gentoo/sys</code><br>
+        <code>mount --make-rslave /mnt/gentoo/sys</code><br>
+        <code>mount --rbind /dev /mnt/gentoo/dev</code><br>
+        <code>mount --make-rslave /mnt/gentoo/dev</code><br>
+        <code>mount --bind /run /mnt/gentoo/run</code><br>
+        <code>mount --make-slave /mnt/gentoo/run</code><br>
+        <code>chroot /mnt/gentoo /bin/bash</code><br>
+        <code>source /etc/profile</code><br>
+        <code>export PS1="(chroot) ${PS1}"</code>
+        <h2>Updating Repositories:</h2>
+        <code>emerge-webrsync</code>
+        <h2>Selecting a Profile:</h2>
+        <code>eselect profile list</code><br>
+        <p>Select profile 23 for the desired DE or WM:</p>
+        <code>eselect profile set 23</code>
+        <h2>USE Flags and World Update:</h2>
+        <code>emerge --ask sys-libs/libxcrypt</code><br>
+        <code>emerge --ask --verbose --update --deep --newuse @world</code>
+        <h2>Time and Locale Setup:</h2>
+        <p>Set time for OpenRC:</p>
+        <code>echo "Europe/Moscow" > /etc/timezone</code><br>
+        <p>Set time for systemd:</p>
+        <code>ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime</code><br>
+        <p>Set locales:</p>
+        <code>nano /etc/locale.gen</code><br>
+        <p>Add:</p>
+        <code>en_US.UTF-8 UTF-8</code><br>
+        <code>ru_RU.UTF-8 UTF-8</code><br>
+        <code>locale-gen</code>
+        <h2>Installing Kernel:</h2>
+        <p>First, install linux-firmware:</p>
+        <code>emerge --ask sys-kernel/linux-firmware</code><br>
+        <p>Set up installkernel:</p>
+        <code>nano /etc/portage/package.use/installkernel</code><br>
+        <p>Add:</p>
+        <code>sys-kernel/installkernel dracut</code><br>
+        <p>Install the package:</p>
+        <code>emerge --ask sys-kernel/installkernel</code><br>
+        <p>Select the kernel:</p>
+        <code>emerge --ask sys-kernel/gentoo-kernel-bin</code>
+        <h2>Filling fstab:</h2>
+        <p>First, install genfstab:</p>
+        <code>emerge --ask sys-fs/genfstab</code><br>
+        <p>Generate:</p>
+        <code>exit</code><br>
+        <code>genfstab -U /mnt/gentoo > /mnt/gentoo/etc/fstab</code><br>
+        <p>Re-enter chroot:</p>
+        <code>chroot /mnt/gentoo /bin/bash</code>
+        <h2>Setting Hostname:</h2>
+        <code>echo gentoo > /etc/hostname</code><br>
+        <p>Replace <code>gentoo</code> with your desired hostname.</p>
+        <h2>Filling /etc/hosts:</h2>
+        <code>nano /etc/hosts</code><br>
+        <p>Add:</p>
+        <code>127.0.0.1  gentoo</code>
+        <h2>Installing Essential Software:</h2>
+        <p>Install GRUB and dhcpcd:</p>
+        <code>emerge --ask net-misc/dhcpcd sys-boot/grub sys-boot/efibootmgr</code>
+        <h2>Configuring GRUB:</h2>
+        <code>grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=gentoo</code><br>
+        <code>grub-mkconfig -o /boot/grub/grub.cfg</code>
+        <h2>Setting Root Password and Creating User:</h2>
+        <code>passwd</code><br>
+        <p>Enter password twice.</p>
+        <code>useradd -m bob</code><br>
+        <code>passwd bob</code><br>
+        <p>Replace <code>bob</code> with your username.</p>
+        <h2>Exit and reboot:</h2>
+        <code>exit</code><br>
+        <code>umount -R /mnt/gentoo</code><br>
+        <code>reboot</code>
+        <div id="footer">
+            <p>© 2024 LinStall.</p>
+        </div>
+    </div>
+</body>
+</html>
